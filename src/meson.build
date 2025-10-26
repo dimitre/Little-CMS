@@ -41,8 +41,19 @@ if host_machine.system() == 'windows'
     endif
 endif
 
+# Determine which library function to use based on default_library option
+# This fixes cross-compilation naming issues with MSVC where library()
+# incorrectly generates .a files instead of .lib for static libraries
+if get_option('default_library') == 'static'
+  lib_func = static_library
+elif get_option('default_library') == 'shared'
+  lib_func = shared_library
+else
+  lib_func = both_libraries
+endif
+
 if get_option('versionedlibs')
-  liblcms2_lib = both_libraries(
+  liblcms2_lib = lib_func(
     'lcms2',
     lcms2_srcs,
     include_directories: inc_dirs,
@@ -54,7 +65,7 @@ if get_option('versionedlibs')
     install: true,
   )
 else
-  liblcms2_lib = both_libraries(
+  liblcms2_lib = lib_func(
     'lcms2',
     lcms2_srcs,
     include_directories: inc_dirs,
@@ -65,9 +76,15 @@ else
   )
 endif
 
-liblcms2_dep = declare_dependency(
-  link_with: get_option('default_library') == 'shared' ?
-    liblcms2_lib.get_shared_lib() :
-    liblcms2_lib.get_static_lib(),
-  include_directories: [inc_dirs, include_directories('.')],
-)
+# Handle dependency declaration for both_libraries case
+if get_option('default_library') == 'both'
+  liblcms2_dep = declare_dependency(
+    link_with: liblcms2_lib.get_static_lib(),
+    include_directories: [inc_dirs, include_directories('.')],
+  )
+else
+  liblcms2_dep = declare_dependency(
+    link_with: liblcms2_lib,
+    include_directories: [inc_dirs, include_directories('.')],
+  )
+endif
