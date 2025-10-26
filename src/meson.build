@@ -50,22 +50,25 @@ lib_common_args = {
   'install': true,
 }
 
-# Add version if needed
-if get_option('versionedlibs')
-  lib_common_args += {'version': library_version}
-endif
-
 # Determine which library type to build based on default_library option
 # This fixes cross-compilation naming issues with MSVC where library()
 # incorrectly generates .a files instead of .lib for static libraries
 default_lib_type = get_option('default_library')
 
 if default_lib_type == 'static'
+  # Static libraries don't use version numbers
   liblcms2_lib = static_library('lcms2', lcms2_srcs, kwargs: lib_common_args)
 elif default_lib_type == 'shared'
+  # Add version for shared library if requested
+  if get_option('versionedlibs')
+    lib_common_args += {'version': library_version}
+  endif
   liblcms2_lib = shared_library('lcms2', lcms2_srcs, kwargs: lib_common_args)
 else
-  # 'both' option
+  # 'both' option - add version if requested
+  if get_option('versionedlibs')
+    lib_common_args += {'version': library_version}
+  endif
   liblcms2_lib = both_libraries('lcms2', lcms2_srcs, kwargs: lib_common_args)
 endif
 
