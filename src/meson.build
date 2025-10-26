@@ -38,11 +38,11 @@ if host_machine.system() == 'windows'
 
         lcms2_srcs += win.compile_resources(lcms2_rc)
         cargs += '-DCMS_DLL_BUILD=1'
-    endif  
+    endif
 endif
 
 if get_option('versionedlibs')
-  liblcms2_lib = library(
+  liblcms2_lib = both_libraries(
     'lcms2',
     lcms2_srcs,
     include_directories: inc_dirs,
@@ -54,7 +54,7 @@ if get_option('versionedlibs')
     install: true,
   )
 else
-  liblcms2_lib = library(
+  liblcms2_lib = both_libraries(
     'lcms2',
     lcms2_srcs,
     include_directories: inc_dirs,
@@ -66,6 +66,8 @@ else
 endif
 
 liblcms2_dep = declare_dependency(
-  link_with: liblcms2_lib,
+  link_with: get_option('default_library') == 'shared' ?
+    liblcms2_lib.get_shared_lib() :
+    liblcms2_lib.get_static_lib(),
   include_directories: [inc_dirs, include_directories('.')],
 )
