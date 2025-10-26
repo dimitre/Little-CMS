@@ -41,43 +41,36 @@ if host_machine.system() == 'windows'
     endif
 endif
 
-# Determine which library function to use based on default_library option
-# This fixes cross-compilation naming issues with MSVC where library()
-# incorrectly generates .a files instead of .lib for static libraries
-if get_option('default_library') == 'static'
-  lib_func = static_library
-elif get_option('default_library') == 'shared'
-  lib_func = shared_library
-else
-  lib_func = both_libraries
+# Build library arguments - common to all library types
+lib_common_args = {
+  'include_directories': inc_dirs,
+  'gnu_symbol_visibility': 'hidden',
+  'dependencies': deps,
+  'c_args': cargs,
+  'install': true,
+}
+
+# Add version if needed
+if get_option('versionedlibs')
+  lib_common_args += {'version': library_version}
 endif
 
-if get_option('versionedlibs')
-  liblcms2_lib = lib_func(
-    'lcms2',
-    lcms2_srcs,
-    include_directories: inc_dirs,
-    gnu_symbol_visibility: 'hidden',
-    dependencies: deps,
-    c_args: cargs,
-    version: library_version,
-    # vs_module_defs: 'lcms2.def',
-    install: true,
-  )
+# Determine which library type to build based on default_library option
+# This fixes cross-compilation naming issues with MSVC where library()
+# incorrectly generates .a files instead of .lib for static libraries
+default_lib_type = get_option('default_library')
+
+if default_lib_type == 'static'
+  liblcms2_lib = static_library('lcms2', lcms2_srcs, kwargs: lib_common_args)
+elif default_lib_type == 'shared'
+  liblcms2_lib = shared_library('lcms2', lcms2_srcs, kwargs: lib_common_args)
 else
-  liblcms2_lib = lib_func(
-    'lcms2',
-    lcms2_srcs,
-    include_directories: inc_dirs,
-    gnu_symbol_visibility: 'hidden',
-    dependencies: deps,
-    c_args: cargs,
-    install: true,
-  )
+  # 'both' option
+  liblcms2_lib = both_libraries('lcms2', lcms2_srcs, kwargs: lib_common_args)
 endif
 
 # Handle dependency declaration for both_libraries case
-if get_option('default_library') == 'both'
+if default_lib_type == 'both'
   liblcms2_dep = declare_dependency(
     link_with: liblcms2_lib.get_static_lib(),
     include_directories: [inc_dirs, include_directories('.')],
