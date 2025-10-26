@@ -57,6 +57,10 @@ default_lib_type = get_option('default_library')
 
 if default_lib_type == 'static'
   # Static libraries don't use version numbers
+  # Explicitly set name_suffix to 'lib' for MSVC to fix cross-compilation bug
+  if is_visual_studio and meson.is_cross_build()
+    lib_common_args += {'name_suffix': 'lib'}
+  endif
   liblcms2_lib = static_library('lcms2', lcms2_srcs, kwargs: lib_common_args)
 elif default_lib_type == 'shared'
   # Add version for shared library if requested
